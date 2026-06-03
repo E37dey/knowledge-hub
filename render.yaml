@@ -1,23 +1,22 @@
 # Render Blueprint for Knowledge Hub.
 #
-# Provisions three things:
-#   1. A managed PostgreSQL database.
-#   2. The backend API (Dockerized FastAPI) — migrations run via
+# Provisions two services and associates with an existing database:
+#   1. The backend API (Dockerized FastAPI) — migrations run via
 #      preDeployCommand before each deploy.
-#   3. The frontend (Vite static site) with an SPA rewrite.
+#   2. The frontend (Vite static site) with an SPA rewrite.
 #
-# Qdrant is NOT managed here — create a free cluster at cloud.qdrant.io and
-# paste its URL + API key into the QDRANT_URL / QDRANT_API_KEY env vars below.
+# Postgres is NOT declared here — create the database manually in the
+# Render dashboard (free tier) as `knowledge-hub-db`. The backend's
+# DATABASE_URL env var below resolves to it by name lookup, so this
+# blueprint stays decoupled from the database lifecycle (no accidental
+# plan upgrades when re-deploying).
+#
+# Qdrant is also NOT managed here — create a free cluster at
+# cloud.qdrant.io and paste its URL + API key into QDRANT_URL /
+# QDRANT_API_KEY in the dashboard.
 #
 # Env vars marked `sync: false` are secrets/URLs you set in the Render
 # dashboard (or on first deploy); they are intentionally not committed.
-
-databases:
-  - name: knowledge-hub-db
-    databaseName: knowledge_hub
-    user: knowledge_hub
-    plan: basic-256mb # smallest paid tier; `free` also works (expires after 30 days)
-    region: oregon
 
 services:
   # --- Backend API (Docker) ------------------------------------------------
@@ -25,7 +24,9 @@ services:
     type: web
     runtime: docker
     region: oregon
-    plan: starter # ~512 MB is plenty now that embeddings are hosted (no torch)
+    plan: free # 512 MB / 0.1 CPU; embeddings are hosted now so no torch -> fits.
+    # Caveat: Render's free web tier spins the instance down after 15 min of
+    # inactivity, so the first request after idle adds ~30-60 s of cold start.
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /health
