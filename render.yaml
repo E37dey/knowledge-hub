@@ -1,8 +1,8 @@
 # Render Blueprint for Knowledge Hub.
 #
 # Provisions two services and associates with an existing database:
-#   1. The backend API (Dockerized FastAPI) — migrations run via
-#      preDeployCommand before each deploy.
+#   1. The backend API (Dockerized FastAPI) — `alembic upgrade head`
+#      runs from the container CMD before uvicorn binds the port.
 #   2. The frontend (Vite static site) with an SPA rewrite.
 #
 # Postgres is NOT declared here — create the database manually in the
