@@ -1,0 +1,70 @@
+# Render Blueprint for Knowledge Hub.
+#
+# Provisions three things:
+#   1. A managed PostgreSQL database.
+#   2. The backend API (Dockerized FastAPI) — migrations run via
+#      preDeployCommand before each deploy.
+#   3. The frontend (Vite static site) with an SPA rewrite.
+#
+# Qdrant is NOT managed here — create a free cluster at cloud.qdrant.io and
+# paste its URL + API key into the QDRANT_URL / QDRANT_API_KEY env vars below.
+#
+# Env vars marked `sync: false` are secrets/URLs you set in the Render
+# dashboard (or on first deploy); they are intentionally not committed.
+
+databases:
+  - name: knowledge-hub-db
+    databaseName: knowledge_hub
+    user: knowledge_hub
+    plan: basic-256mb # smallest paid tier; `free` also works (expires after 30 days)
+    region: oregon
+
+services:
+  # --- Backend API (Docker) ------------------------------------------------
+  - name: knowledge-hub-api
+    type: web
+    runtime: docker
+    region: oregon
+    plan: starter # ~512 MB is plenty now that embeddings are hosted (no torch)
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    # Apply DB migrations before the new version goes live.
+    preDeployCommand: python -m alembic upgrade head
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: knowledge-hub-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true # Render generates a strong random JWT secret
+      - key: QDRANT_URL
+        sync: false # https://<cluster>.qdrant.io  (from Qdrant Cloud)
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: VOYAGE_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: VOYAGE_MODEL
+        value: voyage-4-large
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+      - key: CORS_ORIGINS
+        sync: false # set to the frontend URL, e.g. https://knowledge-hub-web.onrender.com
+
+  # --- Frontend (Vite static site) ----------------------------------------
+  - name: knowledge-hub-web
+    type: web
+    runtime: static
+    rootDir: ./frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false # set to the backend URL, e.g. https://knowledge-hub-api.onrender.com
+    routes:
+      # SPA fallback: serve index.html for client-side routes (/ask, /login…)
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -53,16 +53,29 @@ _client: QdrantClient | None = None
 
 
 def _get_client() -> QdrantClient:
-    """Lazy singleton accessor for the Qdrant client."""
+    """Lazy singleton accessor for the Qdrant client.
+
+    If QDRANT_URL is set we connect to a remote cluster (Qdrant Cloud) with
+    an API key; otherwise we fall back to the local host/port from
+    docker-compose. Same code, two environments — only the env differs.
+
+    check_compatibility=False silences a client/server version warning
+    that's noisy and not actionable in our setup.
+    """
     global _client
     if _client is None:
-        # check_compatibility=False silences a client/server version
-        # warning that's noisy and not actionable in our setup.
-        _client = QdrantClient(
-            host=settings.QDRANT_HOST,
-            port=settings.QDRANT_PORT,
-            check_compatibility=False,
-        )
+        if settings.QDRANT_URL:
+            _client = QdrantClient(
+                url=settings.QDRANT_URL,
+                api_key=settings.QDRANT_API_KEY or None,
+                check_compatibility=False,
+            )
+        else:
+            _client = QdrantClient(
+                host=settings.QDRANT_HOST,
+                port=settings.QDRANT_PORT,
+                check_compatibility=False,
+            )
     return _client
 
 
@@ -74,7 +87,19 @@ def init_collection(vector_size: int) -> None:
     away the work done so far.
     """
     client = _get_client()
-    if not client.collection_exists(COLLECTION_NAME):
+    if client.collection_exists(COLLECTION_NAME):
+        # Guard against a stale collection from a different embedding model:
+        # upserting 1024-dim vectors into a 384-dim collection would fail
+        # with a cryptic error, so fail loudly with a clear remedy instead.
+        existing = client.get_collection(COLLECTION_NAME).config.params.vectors.size
+        if existing != vector_size:
+            raise RuntimeError(
+                f"Qdrant collection '{COLLECTION_NAME}' has vector size "
+                f"{existing}, but the current embedding model produces "
+                f"{vector_size}-dim vectors. Delete the collection (or use a "
+                f"new COLLECTION_NAME) after changing embedding models."
+            )
+    else:
         client.create_collection(
             collection_name=COLLECTION_NAME,
             vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),

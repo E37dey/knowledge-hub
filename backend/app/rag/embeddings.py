@@ -1,66 +1,83 @@
-"""Wrapper around the embedding model.
+"""Embeddings via Voyage AI (hosted).
 
-Backend: local `sentence-transformers` with `BAAI/bge-small-en-v1.5`.
-Why local: no external API dependency, zero cost per query, fully offline
-inference (matters when the corpus is confidential engineering docs).
+Replaces project 1's local sentence-transformers/bge model. Why hosted:
+  * No torch in the image — build is far smaller/faster and the service
+    runs comfortably in ~512 MB instead of needing 1 GB+ for CPU torch.
+  * Higher retrieval quality from a frontier embedding model.
 
-Trade-off: bge-small produces 384-dim vectors and is English-only; a
-hosted model like voyage-3 would give higher absolute recall and
-multilingual support. For this project the autonomy wins.
+Trade-off vs local: every embed call is a network round-trip and costs
+tokens (the voyage-4 family includes a generous monthly free tier). For a
+multi-user web app that already calls a hosted LLM, that's the right call.
 
-The model is loaded lazily on first use and held as a module-level
-singleton — a single `SentenceTransformer` instance is ~130 MB and
-takes 1-2s to initialize, so re-instantiating per call would dominate
-query latency.
+Voyage returns L2-normalized vectors, so cosine similarity in Qdrant
+reduces to a dot product — consistent with the COSINE collection.
 
-Ported verbatim from project 1 — embeddings are user-agnostic, so
-nothing about per-user isolation changes here.
+`input_type` is the Voyage equivalent of bge's query prefix: pass
+"query" at retrieval time and "document" at ingestion time so the two
+representations are aligned.
 """
-from sentence_transformers import SentenceTransformer
+import voyageai
 
-EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
-EMBEDDING_DIM = 384
+from app.config import settings
 
-# bge models recommend this prefix on queries only (not on documents).
-# Keeps query/document representations aligned for retrieval.
-QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
+# All voyage-4 models default to 1024 dims; we also pass output_dimension
+# explicitly so the vector size is pinned regardless of model defaults —
+# it MUST match the Qdrant collection's configured size.
+EMBEDDING_DIM = 1024
 
-_model: SentenceTransformer | None = None
+# Voyage accepts up to 1,000 inputs per request; we batch smaller to stay
+# well under the per-request token ceiling (chunks are ~500 tokens each).
+_BATCH_SIZE = 128
+
+_client: voyageai.Client | None = None
 
 
-def _get_model() -> SentenceTransformer:
-    """Lazy singleton accessor for the embedding model."""
-    global _model
-    if _model is None:
-        _model = SentenceTransformer(EMBEDDING_MODEL)
-    return _model
+def _get_client() -> voyageai.Client:
+    """Lazy singleton accessor for the Voyage client."""
+    global _client
+    if _client is None:
+        if not settings.VOYAGE_API_KEY:
+            raise RuntimeError(
+                "VOYAGE_API_KEY is not set. Add it to the environment "
+                "(.env locally, Render env var in production)."
+            )
+        _client = voyageai.Client(api_key=settings.VOYAGE_API_KEY)
+    return _client
 
 
 def embed_query(text: str) -> list[float]:
     """Embed a single query string (used at retrieval time)."""
-    model = _get_model()
-    vector = model.encode(QUERY_PREFIX + text, normalize_embeddings=True)
-    return vector.tolist()
+    result = _get_client().embed(
+        [text],
+        model=settings.VOYAGE_MODEL,
+        input_type="query",
+        output_dimension=EMBEDDING_DIM,
+    )
+    return result.embeddings[0]
 
 
 def embed_batch(
     texts: list[str],
-    batch_size: int = 32,
-    show_progress: bool = True,
+    batch_size: int = _BATCH_SIZE,
+    show_progress: bool = False,
 ) -> list[list[float]]:
     """Embed a batch of documents (used at ingestion time).
 
-    No query prefix here — these are documents, not queries.
-    Normalization is on so cosine similarity in Qdrant reduces to a
-    simple dot product.
+    `show_progress` is accepted for call-site compatibility with the old
+    local embedder; Voyage has no progress bar, so it's a no-op.
     """
     if not texts:
         return []
-    model = _get_model()
-    vectors = model.encode(
-        texts,
-        batch_size=batch_size,
-        normalize_embeddings=True,
-        show_progress_bar=show_progress,
-    )
-    return vectors.tolist()
+
+    client = _get_client()
+    vectors: list[list[float]] = []
+    for start in range(0, len(texts), batch_size):
+        batch = texts[start : start + batch_size]
+        result = client.embed(
+            batch,
+            model=settings.VOYAGE_MODEL,
+            input_type="document",
+            output_dimension=EMBEDDING_DIM,
+        )
+        vectors.extend(result.embeddings)
+    return vectors

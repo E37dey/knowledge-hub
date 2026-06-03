@@ -2,8 +2,10 @@
 // handling, so no component ever touches `fetch`, headers, or localStorage
 // for auth directly.
 //
-//   * Base URL is `/api` — Vite proxies that to the FastAPI backend in dev
-//     (see vite.config.js), so there is no CORS to configure.
+//   * Base URL: in dev it's `/api`, which Vite proxies to the backend (no
+//     CORS needed). In production set VITE_API_URL at build time to the
+//     deployed backend URL (e.g. https://knowledge-hub-api.onrender.com);
+//     requests then go cross-origin and the backend's CORS allows them.
 //   * The JWT is read from localStorage on every call and sent as
 //     `Authorization: Bearer <token>`.
 //   * Pass a plain object as `json` to send a JSON body; pass a FormData
@@ -13,7 +15,9 @@
 //   * A 401 clears the stored token so the next ProtectedRoute render bounces
 //     the user to /login.
 
-const BASE_URL = '/api';
+// VITE_API_URL is baked in at build time. Empty/undefined in dev → use the
+// Vite proxy at `/api`. A trailing slash is trimmed so paths concatenate cleanly.
+const BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 const TOKEN_KEY = 'auth_token';
 
 export class ApiError extends Error {

@@ -1,0 +1,20 @@
+# Keep the build context (and image) small and secret-free.
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Never bake secrets into the image
+.env
+.env.*
+
+# Local-only: virtualenvs, tests, one-off verification scripts
+.venv/
+venv/
+tests/
+scripts/
+
+# Note: alembic/ and alembic.ini are intentionally NOT ignored —
+# the preDeployCommand needs them to run migrations.

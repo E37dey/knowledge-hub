@@ -16,7 +16,7 @@
 - **Auth:** JWT (`python-jose`) + bcrypt password hashing (`passlib`) — stateless, מתאים ל-SPA
 - **Vector DB:** Qdrant ב-Docker — מפרויקט 1, **עם תיוג user_id בכל chunk**
 - **LLM:** Claude Sonnet 4.6 — מפרויקט 1
-- **Embeddings:** sentence-transformers (`bge-small-en-v1.5`) מקומי — מפרויקט 1
+- **Embeddings:** Voyage AI (`voyage-4-large`, 1024-dim) מנוהל — הוחלף מ-sentence-transformers/torch המקומי לקראת פריסה (פחות זיכרון, build מהיר, איכות retrieval גבוהה). דורש `VOYAGE_API_KEY`.
 
 ## מודל הנתונים
 - **users**: id (uuid), email (unique), hashed_password, created_at
