@@ -5,6 +5,25 @@
 > personal corpus — with per-user data isolation enforced in both
 > PostgreSQL and Qdrant.
 
+## Screenshots
+
+![Login](docs/01-login.png)
+*Login — JWT-based auth, redirects to the protected dashboard on success.*
+
+![Empty dashboard](docs/02-dashboard-empty.png)
+*Empty dashboard — every user starts with a private (empty) corpus.*
+
+![Documents indexed](docs/03-dashboard-uploaded.png)
+*Documents page after upload — synchronous ingestion shows the status flipping from "processing" to "indexed" with the chunk count.*
+
+![Cited answer](docs/04-ask-answer.png)
+*Cited answer — inline citations on every claim, source cards with similarity scores, and the user's per-account query history on the right.*
+
+![Isolation](docs/05-isolation-userB-empty.png)
+*User-B logged in: zero documents, despite user-A having uploaded. Postgres rows are FK-filtered; Qdrant points are payload-filtered. Same physical stores, hard logical separation.*
+
+---
+
 Knowledge Hub is the full-stack evolution of
 [engineering-rag](../engineering-rag): same retrieval core, now wrapped
 in authentication, persistence, and multi-tenancy. React frontend,
@@ -26,25 +45,6 @@ The new principle introduced by project 2:
 3. **No data ever crosses a user boundary.** Not in the Postgres rows,
    not in the Qdrant payload filter, not transiently in process memory.
    Tested end-to-end by `scripts/verify_isolation.py` — see below.
-
----
-
-## Screenshots
-
-![Login](docs/01-login.png)
-*Login — JWT-based auth, redirects to the protected dashboard on success.*
-
-![Empty dashboard](docs/02-dashboard-empty.png)
-*Empty dashboard — every user starts with a private (empty) corpus.*
-
-![Documents indexed](docs/03-dashboard-uploaded.png)
-*Documents page after upload — synchronous ingestion shows the status flipping from "processing" to "indexed" with the chunk count.*
-
-![Cited answer](docs/04-ask-answer.png)
-*Cited answer — inline citations on every claim, source cards with similarity scores, and the user's per-account query history on the right.*
-
-![Isolation](docs/05-isolation-userB-empty.png)
-*User-B logged in: zero documents, despite user-A having uploaded. Postgres rows are FK-filtered; Qdrant points are payload-filtered. Same physical stores, hard logical separation.*
 
 ---
 
