@@ -7,7 +7,9 @@ from fastapi import Depends, FastAPI
 
 from app.auth.deps import get_current_user
 from app.auth.routes import router as auth_router
+from app.documents.routes import router as documents_router
 from app.models import User
+from app.query.routes import router as query_router
 from app.schemas import UserPublic
 
 app = FastAPI(
@@ -34,9 +36,5 @@ def read_current_user(user: User = Depends(get_current_user)) -> User:
 
 
 app.include_router(auth_router)
-
-# TODO: register documents + query routers (tasks 4-5)
-#   from app.documents.routes import router as documents_router
-#   from app.query.routes import router as query_router
-#   app.include_router(documents_router)
-#   app.include_router(query_router)
+app.include_router(documents_router)
+app.include_router(query_router)

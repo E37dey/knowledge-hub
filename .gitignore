@@ -23,6 +23,9 @@ frontend/.vite/
 *.log
 .vite/
 
+# Playwright MCP output (snapshots, console logs, scratch PDFs)
+.playwright-mcp/
+
 # Local data (uploaded PDFs, exported reports)
 backend/uploads/
 *.pdf
