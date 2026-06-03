@@ -30,8 +30,9 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /health
-    # Apply DB migrations before the new version goes live.
-    preDeployCommand: python -m alembic upgrade head
+    # Note: preDeployCommand is a paid-tier feature on Render. Migrations
+    # therefore run from the container CMD (alembic upgrade head before
+    # uvicorn) — see backend/Dockerfile.
     envVars:
       - key: DATABASE_URL
         fromDatabase:
