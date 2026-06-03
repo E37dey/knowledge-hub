@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: knowledge-hub-postgres
+    environment:
+      POSTGRES_USER: knowledge_hub
+      POSTGRES_PASSWORD: knowledge_hub_dev
+      POSTGRES_DB: knowledge_hub
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U knowledge_hub -d knowledge_hub"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    container_name: knowledge-hub-qdrant
+    # Host port 6334 -> container 6333. Project 1 already uses host 6333,
+    # so we deliberately shift to avoid a port collision.
+    ports:
+      - "6334:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  qdrant_data:

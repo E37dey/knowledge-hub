@@ -1,0 +1,29 @@
+# Web framework
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Config + validation
+pydantic
+pydantic-settings
+python-dotenv
+
+# Database
+sqlalchemy
+alembic
+psycopg2-binary
+
+# Authentication
+python-jose[cryptography]
+bcrypt
+email-validator
+
+# RAG (carried over from project 1)
+qdrant-client
+sentence-transformers
+anthropic
+pypdf
+
+# Testing
+pytest
+httpx

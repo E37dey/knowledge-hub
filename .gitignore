@@ -1,0 +1,38 @@
+# Secrets
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+
+# Node / Vite
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.log
+.vite/
+
+# Local data (uploaded PDFs, exported reports)
+backend/uploads/
+*.pdf
+
+# SQLite (in case alembic creates one for offline experiments)
+*.db
+*.sqlite
+*.sqlite3
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
