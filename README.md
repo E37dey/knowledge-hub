@@ -25,7 +25,7 @@
 ---
 
 Knowledge Hub is the full-stack evolution of
-[engineering-rag](../engineering-rag): same retrieval core, now wrapped
+[engineering-rag-assistant](https://github.com/E37dey/engineering-rag-assistant): same retrieval core, now wrapped
 in authentication, persistence, and multi-tenancy. React frontend,
 FastAPI backend, JWT auth, Postgres for relational state (users,
 documents, query history), Qdrant for vectors. Every operation —
@@ -280,7 +280,9 @@ default it deletes alice's uploaded document at the end; pass `--keep`
 to leave it in place for inspection.
 
 The default sample PDF is `engineering-rag/data/NE555.pdf` (the
-project-1 corpus); pass `--pdf <path>` to point at any PDF on disk.
+project-1 corpus from
+[engineering-rag-assistant](https://github.com/E37dey/engineering-rag-assistant),
+cloned next to this repo as `engineering-rag/`); pass `--pdf <path>` to point at any PDF on disk.
 
 ---
 
